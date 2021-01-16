@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -15,10 +16,13 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @SpringBootApplication
 public class Main implements CommandLineRunner {
 
   Logger logger = LoggerFactory.getLogger(Main.class);
+  ObjectMapper mapper = new ObjectMapper();
 
   public static void main(final String[] args) {
     SpringApplication.run(Main.class, args);
@@ -31,14 +35,12 @@ public class Main implements CommandLineRunner {
     ConnectableFlux<FileLine> flux = Flux.<FileLine>push(emitter -> {
       try {
         final File file = new File("file.csv");
-        Files.lines(file.toPath())
-                .map(line -> {
-                  final String[] split = line.split(",");
-                  return new FileLine(split[0], split[1]);
-                })
-                .forEach(fl -> {
-                  emitter.next(fl);
-                });
+        Files.lines(file.toPath()).map(line -> {
+          final String[] split = line.split(",");
+          return new FileLine(split[0], split[1]);
+        }).forEach(fl -> {
+          emitter.next(fl);
+        });
         emitter.complete();
       } catch (final IOException e) {
         emitter.error(e);
@@ -46,11 +48,8 @@ public class Main implements CommandLineRunner {
     }).publish();
 
     // do some transformations
-    flux
-      .windowUntilChanged(fl -> fl.id)
-      .map(m -> new Sentence(m.collectList()))
-      .buffer(3)
-      .subscribe(batch -> handleBatch(batch));
+    flux.windowUntilChanged(fl -> fl.id).map(m -> new Sentence(m.collectList())).buffer(3)
+        .subscribe(batch -> handleBatch(batch));
 
     // lets start everything
     flux.connect();
@@ -58,6 +57,11 @@ public class Main implements CommandLineRunner {
 
   private void handleBatch(List<Sentence> batch) {
     logger.info(">>>> BATCH <<<<");
+    try {
+      Thread.sleep(2000);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
     for (Sentence sentence : batch) {
       Mono<List<FileLine>> lines = sentence.lines;
       lines.subscribe(l -> {
@@ -82,6 +86,23 @@ public class Main implements CommandLineRunner {
     Mono<List<FileLine>> lines;
     public Sentence(Mono<List<FileLine>> lines) {
       this.lines = lines;
+    }
+  }
+  static class BatchEntry {
+    String id;
+    String words;
+    public BatchEntry(String id, String words) {
+      this.id = id;
+      this.words = words;
+    }
+  }
+
+  static class Batch {
+    String uuid;
+    List<BatchEntry> entries;
+    public Batch(String uuid, List<BatchEntry> entries) {
+      this.uuid = uuid;
+      this.entries = entries;
     }
   }
 }
