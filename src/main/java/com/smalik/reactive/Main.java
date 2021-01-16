@@ -57,11 +57,6 @@ public class Main implements CommandLineRunner {
 
   private void handleBatch(List<Sentence> batch) {
     logger.info(">>>> BATCH <<<<");
-    try {
-      Thread.sleep(2000);
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
     for (Sentence sentence : batch) {
       Mono<List<FileLine>> lines = sentence.lines;
       lines.subscribe(l -> {
