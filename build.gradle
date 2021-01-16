@@ -1,0 +1,21 @@
+plugins {
+	id 'org.springframework.boot' version '2.2.12.RELEASE'
+	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+	id 'java'
+}
+
+group = 'com.smalik'
+version = '1.0-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+	mavenCentral()
+}
+
+dependencies {
+
+	implementation 'org.springframework.boot:spring-boot-starter'
+	
+	implementation platform('io.projectreactor:reactor-bom:2020.0.3')
+  implementation 'io.projectreactor:reactor-core' 
+}
