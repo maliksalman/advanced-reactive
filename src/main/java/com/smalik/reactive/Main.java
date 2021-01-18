@@ -6,12 +6,10 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,30 +28,18 @@ public class Main implements CommandLineRunner {
 
   @Override
   public void run(final String... args) throws Exception {
+    Flux
+      .fromStream(Files.lines(new File("file.csv").toPath()))
+      .map(s -> {
+        String[] split = s.split(",");
+        return new FileLine(split[0], split[1]);
+      })
+      .windowUntilChanged(line -> line.id)
+      .map(m -> new Sentence(m.collectList()))
+      .buffer(3)
+      .subscribe(batch -> handleBatch(batch));
+    }
 
-    // create flux from FileLine objects
-    ConnectableFlux<FileLine> flux = Flux.<FileLine>push(emitter -> {
-      try {
-        final File file = new File("file.csv");
-        Files.lines(file.toPath()).map(line -> {
-          final String[] split = line.split(",");
-          return new FileLine(split[0], split[1]);
-        }).forEach(fl -> {
-          emitter.next(fl);
-        });
-        emitter.complete();
-      } catch (final IOException e) {
-        emitter.error(e);
-      }
-    }).publish();
-
-    // do some transformations
-    flux.windowUntilChanged(fl -> fl.id).map(m -> new Sentence(m.collectList())).buffer(3)
-        .subscribe(batch -> handleBatch(batch));
-
-    // lets start everything
-    flux.connect();
-  }
 
   private void handleBatch(List<Sentence> batch) {
     logger.info(">>>> BATCH <<<<");
@@ -74,6 +60,16 @@ public class Main implements CommandLineRunner {
     FileLine(final String id, final String word) {
       this.id = id;
       this.word = word;
+    }
+  }
+
+  static class RealSentence {
+    String id;
+    String content;
+    public RealSentence(List<FileLine> lines) {
+      this.id = lines.get(0).id;
+      List<String> words = lines.stream().map(w -> w.word).collect(Collectors.toList());
+      this.content = String.join(" ", words);
     }
   }
 
