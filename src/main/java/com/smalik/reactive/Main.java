@@ -1,5 +1,6 @@
 package com.smalik.reactive;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -7,11 +8,11 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,21 +36,27 @@ public class Main implements CommandLineRunner {
         return new FileLine(split[0], split[1]);
       })
       .windowUntilChanged(line -> line.id)
-      .map(m -> new Sentence(m.collectList()))
+      .flatMap(m -> m.collectList())
       .buffer(3)
-      .subscribe(batch -> handleBatch(batch));
+      .map(m -> makeBatch(m))
+      .subscribe(b -> handleBatch(b));
     }
 
 
-  private void handleBatch(List<Sentence> batch) {
-    logger.info(">>>> BATCH <<<<");
-    for (Sentence sentence : batch) {
-      Mono<List<FileLine>> lines = sentence.lines;
-      lines.subscribe(l -> {
-        String id = l.get(0).id;
-        List<String> words = l.stream().map(w -> w.word).collect(Collectors.toList());
-        logger.info("ID={} Words={}", id, String.join(" ", words));
-      });
+  private Batch makeBatch(List<List<FileLine>> bLines) {
+    return new Batch(
+            UUID.randomUUID().toString(),
+            bLines
+              .stream()
+              .map(m -> new RealSentence(m))
+              .collect(Collectors.toList()));
+  }
+
+  private void handleBatch(Batch b) {
+    try {
+      logger.info(mapper.writeValueAsString(b));
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
     }
   }
 
@@ -71,29 +78,30 @@ public class Main implements CommandLineRunner {
       List<String> words = lines.stream().map(w -> w.word).collect(Collectors.toList());
       this.content = String.join(" ", words);
     }
-  }
 
-  static class Sentence {
-    Mono<List<FileLine>> lines;
-    public Sentence(Mono<List<FileLine>> lines) {
-      this.lines = lines;
+    public String getId() {
+      return id;
     }
-  }
-  static class BatchEntry {
-    String id;
-    String words;
-    public BatchEntry(String id, String words) {
-      this.id = id;
-      this.words = words;
+
+    public String getContent() {
+      return content;
     }
   }
 
   static class Batch {
+    public String getUuid() {
+      return uuid;
+    }
+
+    public List<RealSentence> getSentences() {
+      return sentences;
+    }
+
     String uuid;
-    List<BatchEntry> entries;
-    public Batch(String uuid, List<BatchEntry> entries) {
+    List<RealSentence> sentences;
+    public Batch(String uuid, List<RealSentence> sentences) {
       this.uuid = uuid;
-      this.entries = entries;
+      this.sentences = sentences;
     }
   }
 }
