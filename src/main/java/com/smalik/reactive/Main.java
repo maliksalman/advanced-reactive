@@ -37,19 +37,10 @@ public class Main implements CommandLineRunner {
       })
       .windowUntilChanged(line -> line.id)
       .flatMap(m -> m.collectList())
+      .map(lines -> new RealSentence(lines))
       .buffer(3)
-      .map(m -> makeBatch(m))
+      .map(sentences -> new Batch(sentences))
       .subscribe(b -> handleBatch(b));
-    }
-
-
-  private Batch makeBatch(List<List<FileLine>> bLines) {
-    return new Batch(
-            UUID.randomUUID().toString(),
-            bLines
-              .stream()
-              .map(m -> new RealSentence(m))
-              .collect(Collectors.toList()));
   }
 
   private void handleBatch(Batch b) {
@@ -61,6 +52,7 @@ public class Main implements CommandLineRunner {
   }
 
   static class FileLine {
+
     String id;
     String word;
 
@@ -71,8 +63,10 @@ public class Main implements CommandLineRunner {
   }
 
   static class RealSentence {
+
     String id;
     String content;
+
     public RealSentence(List<FileLine> lines) {
       this.id = lines.get(0).id;
       List<String> words = lines.stream().map(w -> w.word).collect(Collectors.toList());
@@ -82,26 +76,26 @@ public class Main implements CommandLineRunner {
     public String getId() {
       return id;
     }
-
     public String getContent() {
       return content;
     }
   }
 
   static class Batch {
-    public String getUuid() {
-      return uuid;
-    }
-
-    public List<RealSentence> getSentences() {
-      return sentences;
-    }
 
     String uuid;
     List<RealSentence> sentences;
-    public Batch(String uuid, List<RealSentence> sentences) {
-      this.uuid = uuid;
+
+    public Batch(List<RealSentence> sentences) {
+      this.uuid = UUID.randomUUID().toString();
       this.sentences = sentences;
+    }
+
+    public String getUuid() {
+      return uuid;
+    }
+    public List<RealSentence> getSentences() {
+      return sentences;
     }
   }
 }
