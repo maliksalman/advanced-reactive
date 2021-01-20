@@ -9,93 +9,43 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import reactor.core.publisher.Flux;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
+import java.io.*;
+import java.nio.charset.Charset;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootApplication
 public class Main implements CommandLineRunner {
 
-  Logger logger = LoggerFactory.getLogger(Main.class);
-  ObjectMapper mapper = new ObjectMapper();
-
-  public static void main(final String[] args) {
-    SpringApplication.run(Main.class, args);
-  }
-
-  @Override
-  public void run(final String... args) throws Exception {
-    Flux
-      .fromStream(Files.lines(new File("file.csv").toPath()))
-      .map(s -> {
-        String[] split = s.split(",");
-        return new FileLine(split[0], split[1]);
-      })
-      .windowUntilChanged(line -> line.id)
-      .flatMap(m -> m.collectList())
-      .map(lines -> new RealSentence(lines))
-      .buffer(3)
-      .map(sentences -> new Batch(sentences))
-      .subscribe(b -> handleBatch(b));
-  }
-
-  private void handleBatch(Batch b) {
-    try {
-      logger.info(mapper.writeValueAsString(b));
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-    }
-  }
-
-  static class FileLine {
-
-    String id;
-    String word;
-
-    FileLine(final String id, final String word) {
-      this.id = id;
-      this.word = word;
-    }
-  }
-
-  static class RealSentence {
-
-    String id;
-    String content;
-
-    public RealSentence(List<FileLine> lines) {
-      this.id = lines.get(0).id;
-      List<String> words = lines.stream().map(w -> w.word).collect(Collectors.toList());
-      this.content = String.join(" ", words);
+    public static void main(final String[] args) {
+        SpringApplication.run(Main.class, args);
     }
 
-    public String getId() {
-      return id;
-    }
-    public String getContent() {
-      return content;
-    }
-  }
+    private Logger logger = LoggerFactory.getLogger(Main.class);
+    private ObjectMapper mapper = new ObjectMapper();
 
-  static class Batch {
+    @Override
+    public void run(final String... args) throws Exception {
 
-    String uuid;
-    List<RealSentence> sentences;
+        try (
+                InputStream stream = getClass().getClassLoader().getResourceAsStream("data.csv");
+                BufferedReader reader = new BufferedReader(new InputStreamReader(stream, Charset.defaultCharset()))) {
 
-    public Batch(List<RealSentence> sentences) {
-      this.uuid = UUID.randomUUID().toString();
-      this.sentences = sentences;
+            Flux
+                    .fromStream(reader.lines())
+                    .map(line -> new FileLine(line))
+                    .windowUntilChanged(fileLine -> fileLine.getId())
+                    .flatMap(flux -> flux.collectList())
+                    .map(lines -> new Sentence(lines))
+                    .buffer(3)
+                    .map(sentences -> new Batch(sentences))
+                    .subscribe(b -> {
+                        try {
+                            logger.info(mapper.writeValueAsString(b));
+                        } catch (JsonProcessingException e) {
+                            e.printStackTrace();
+                        }
+                    });
+        }
     }
-
-    public String getUuid() {
-      return uuid;
-    }
-    public List<RealSentence> getSentences() {
-      return sentences;
-    }
-  }
 }
