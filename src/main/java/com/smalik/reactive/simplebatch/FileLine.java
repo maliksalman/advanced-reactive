@@ -1,5 +1,8 @@
-package com.smalik.reactive;
+package com.smalik.reactive.simplebatch;
 
+import lombok.Getter;
+
+@Getter
 public class FileLine {
 
     private String id;
@@ -9,14 +12,6 @@ public class FileLine {
         String[] split = line.split(",");
         this.id = split[0];
         this.word = split[1];
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getWord() {
-        return word;
     }
 }
 

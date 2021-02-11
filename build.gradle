@@ -19,4 +19,15 @@ dependencies {
 	
 	implementation platform('io.projectreactor:reactor-bom:2020.0.3')
   implementation 'io.projectreactor:reactor-core' 
+
+	compileOnly 'org.projectlombok:lombok:1.18.16'
+	annotationProcessor 'org.projectlombok:lombok:1.18.16'
+	
+	testImplementation('org.springframework.boot:spring-boot-starter-test') {
+		exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+	}
+}
+
+test {
+	useJUnitPlatform()
 }

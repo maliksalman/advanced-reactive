@@ -1,8 +1,13 @@
-package com.smalik.reactive;
+package com.smalik.reactive.simplebatch;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
+@Getter
+@EqualsAndHashCode
 public class Sentence {
 
     private String id;
@@ -14,10 +19,8 @@ public class Sentence {
       this.content = String.join(" ", words);
     }
 
-    public String getId() {
-      return id;
-    }
-    public String getContent() {
-      return content;
+    public Sentence(String id, String content) {
+      this.id = id;
+      this.content = content;
     }
   }
