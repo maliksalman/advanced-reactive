@@ -45,9 +45,9 @@ public class MainTest {
     try (
       // GIVEN
       BufferedReader reader = new BufferedReader(new StringReader(data))) {
+      Main tested = spy(new Main());
         
       // WHEN
-      Main tested = spy(new Main());
       tested.makeBatches(reader);
 
       // THEN
