@@ -1,4 +1,4 @@
-package com.smalik.reactive.simplebatch;
+package com.smalik.reactive;
 
 import java.util.List;
 import java.util.stream.Collectors;

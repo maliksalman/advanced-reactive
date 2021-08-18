@@ -1,6 +1,5 @@
 package com.smalik.reactive.simplebatch;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,6 +9,8 @@ import java.io.BufferedReader;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.List;
+
+import com.smalik.reactive.Sentence;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
